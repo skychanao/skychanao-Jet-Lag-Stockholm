@@ -1,0 +1,107 @@
+<div style="
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 9999;
+        background-color: white;
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        font-family: Arial, sans-serif;
+        width: 220px;
+    ">
+        <h4 style="margin-top: 0; margin-bottom: 8px; color: #333; font-size: 16px;">Radar</h4>
+        
+        <input type="text" id="coordsInput" placeholder="Lat,Lon: 59.33,18.06" step="any" 
+               style="width: 100%; margin-bottom: 8px; padding: 8px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+               
+        <input type="number" id="radarSize" placeholder="km" step="any" 
+               style="width: 100%; margin-bottom: 8px; padding: 8px; font-size: 16px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
+
+        <input type="radio" id="fillRadar" name ="radar_type" value="fill" checked>
+        <label for="fillRadar" style="font-size: 14px; color: #333; cursor: pointer; margin-right: 100px;">
+            Fill Radar
+        </label>
+
+        <input type="radio" id="EdgeRadar" name ="radar_type" value="edge">
+        <label for="EdgeRadar" style="font-size: 14px; color: #333; cursor: pointer; margin-right: 15px;">
+            Edge Radar
+        </label>
+
+        <button onclick="plotRadar()" style="
+            width: 100%;
+            padding: 10px;
+            background-color: #3388ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+        ">Plot Radar</button>
+        
+        <button onclick="clearRadars()" style="
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            background-color: #666;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        ">Clear Radars</button>
+
+        <script>
+            var activeRadars = [];
+
+            function getFoliumMap() {
+                for (var key in window) {
+                    if (key.startsWith("map_") && window[key] instanceof L.Map) {
+                        return window[key];
+                    }
+                }
+                return null;
+            }
+
+            function plotRadar() {
+                var rawCoord = document.getElementById('coordsInput').value;                
+                var parts = rawCoord.split(',');
+                
+                var lat = parseFloat(parts[0]);
+                var lon = parseFloat(parts[1]);
+                var size = parseFloat(document.getElementById('radarSize').value);
+                
+                var radarType = document.querySelector('input[name="radar_type"]:checked').value;
+                var fillOpac = (radarType === "fill") ? 0.2 : 0.0;
+
+                var myMap = getFoliumMap(); 
+                if (!myMap) {
+                    alert("System Error: Could not find the Folium Map.");
+                    return;
+                }
+                
+                // THE FIX: Make sure the user typed a size as well!
+                if (lat && lon && size) {
+                    var circle = L.circle([lat, lon], {
+                        color: '#3388ff',
+                        fillColor: '#3388ff',
+                        fillOpacity: fillOpac,
+                        radius: size * 1000 // Now it knows 'size' is a real number
+                    }).addTo(myMap); 
+                    
+                    activeRadars.push(circle); 
+                } else {
+                    alert("Please enter Lat, Lon, AND Size (km)!");
+                }
+            }
+
+            function clearRadars() {
+                var myMap = getFoliumMap();
+                if (!myMap) return;
+                
+                for (var i = 0; i < activeRadars.length; i++) {
+                    myMap.removeLayer(activeRadars[i]);
+                }
+                activeRadars = []; 
+            }
+        </script>
+    </div>

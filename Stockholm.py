@@ -1,9 +1,14 @@
 import geopandas as gpd
+import pandas as pd
+from shapely.geometry import Polygon, shape
+
+
 import folium
 import folium.plugins
+from folium.plugins import Draw
 import requests
 import json
-from shapely.geometry import Polygon, shape
+
 
 
 def main():
@@ -19,12 +24,11 @@ def main():
         min_zoom=10,
         max_zoom=20,
         control_scale=True,
-        min_lat=min_lat,
-        max_lat=max_lat,
-        min_lon=min_lon,
-        max_lon=max_lon,
+        # min_lat=min_lat,
+        # max_lat=max_lat,
+        # min_lon=min_lon,
+        # max_lon=max_lon,
     )
-
     cartonDB = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
     folium.TileLayer(
         max_bounds=True,
@@ -35,25 +39,32 @@ def main():
         zoom_start = 11,
         min_zoom=10,
         max_zoom=20,
-        min_lat=min_lat,
-        max_lat=max_lat,
-        min_lon=min_lon,
-        max_lon=max_lon,
+        # min_lat=min_lat,
+        # max_lat=max_lat,
+        # min_lon=min_lon,
+        # max_lon=max_lon,
     ).add_to(m)
 
+
     #All Other map features
+
     municipalities(m)
     districts(m)
     M_lines(m)
     T_lines(m)
-    M_stations(m)
-    T_stations(m)
+    stations(m)
+    radar(m)
+    
 
     #Add location request
-    folium.plugins.LocateControl(auto_start=False).add_to(m)
+    #folium.plugins.LocateControl(auto_start=False).add_to(m)
 
     #Add layer control
     folium.LayerControl().add_to(m)
+
+    #Add draw function
+    Draw(export=False).add_to(m)
+
 
     #map generation
     print("sucessfully generated map.")
@@ -72,6 +83,7 @@ def municipalities(m):
     cleaned_data = raw_municialities[['name', 'geometry']]
 
     #build a GeoDataFrame with the cleaned data
+    global game_area
     game_area = gpd.GeoDataFrame(cleaned_data, crs="EPSG:4326")
 
     #Create a mask, which plots world_borer - game_area,
@@ -88,7 +100,6 @@ def municipalities(m):
     ).add_to(m)
     
 
-
     #Add boundaries of municipalities to the map
     folium.GeoJson(
         game_area,
@@ -104,6 +115,7 @@ def municipalities(m):
         ),
         show = True
     ).add_to(m)
+
 def districts(m):
     districts = gpd.read_file(r"E:\TUE\Projects\Jet-Lag-Stockholm\stockholm-districts.geojson")
 
@@ -113,7 +125,7 @@ def districts(m):
             style_function=lambda x: {
             'fillColor': 'transparent',
             'color': 'black',
-            'weight': 1
+            'weight': 3
         },
         tooltip=folium.GeoJsonTooltip(
             fields = ['name'],
@@ -134,6 +146,7 @@ def M_lines(m):
         name = "Metro Lines",
             style_function=lambda x: {
             'color': 'blue',
+            'width': 1
         },
         tooltip=folium.GeoJsonTooltip(
             fields = ['name'],
@@ -141,33 +154,13 @@ def M_lines(m):
         ),
         show = True
     ).add_to(m)
-def M_stations(m):
-    raw_Mstations = gpd.read_file(r"E:\TUE\Projects\Jet-Lag-Stockholm\metro-stations.geojson")
-    metro_stations = raw_Mstations[['name','geometry']]
-    
-    #plot metro lines
-    folium.GeoJson(
-        metro_stations,
-        name = "Metro Stations",
-        marker=folium.Marker(
-            icon=folium.Icon(
-                color ='darkblue',
-                icon='train-subway', 
-                prefix='fa')
-        ),
-        tooltip=folium.GeoJsonTooltip(
-            fields = ['name'],
-            labels=False
-        ),
-        show = False
-    ).add_to(m)
 
 def T_lines(m):
     raw_TLines = gpd.read_file(r"E:\TUE\Projects\Jet-Lag-Stockholm\tram-lines.geojson")
     tram_lines = raw_TLines[['name','geometry']]
 
-    #reduce length of tram line names
-    tram_lines['name'] = tram_lines['name'].str[:10]
+    #reduce length of tram line names 
+    tram_lines['name'] = tram_lines['name'].str.split(':').str[0].str.strip()
 
     #plot tram lines
     folium.GeoJson(
@@ -175,6 +168,7 @@ def T_lines(m):
         name = "Tram Lines",
             style_function=lambda x: {
             'color': 'red',
+            'width': 1,
         },
         tooltip=folium.GeoJsonTooltip(
             fields = ['name'],
@@ -182,11 +176,27 @@ def T_lines(m):
         ),
         show = True
     ).add_to(m)
-def T_stations(m):
+
+def stations(m):
+    #read data from GeoJson
     raw_Tstations = gpd.read_file(r"E:\TUE\Projects\Jet-Lag-Stockholm\tram-stations.geojson")
+    raw_Mstations = gpd.read_file(r"E:\TUE\Projects\Jet-Lag-Stockholm\metro-stations.geojson")
+
+    #extract name and geometry of unique tram stations 
     tram_stations = raw_Tstations[['name','geometry']].drop_duplicates(subset=['name'])
-    
-    #plot metro lines
+    #only select stations within the game area
+    tram_stations = gpd.clip(tram_stations, game_area)
+
+    #extract name and geometry of metro stations 
+    metro_stations = raw_Mstations[['name','geometry']]
+    #only select stations within the game area
+    metro_stations = gpd.clip(metro_stations, game_area)
+    #hubs_M = metro_stations[metro_stations['name'].isin(tram_stations['name'])]
+    #tram_stations = tram_stations[~tram_stations['name'].isin(metro_stations['name'])]
+    #metro_stations = metro_stations[~metro_stations['name'].isin(tram_stations['name'])]
+    #hubs = folium.FeatureGroup(name="Metro Stations")
+
+    #plot stations with tram
     folium.GeoJson(
         tram_stations,
         name = "Tram Stations",
@@ -202,6 +212,58 @@ def T_stations(m):
         ),
         show = False
     ).add_to(m)
+
+    #plot stations with metro
+    folium.GeoJson(
+        metro_stations,
+        name = "Metro Stations",
+        marker=folium.Marker(
+            icon=folium.Icon(
+                color ='darkblue',
+                icon='train-subway', 
+                prefix='fa')
+        ),
+        tooltip=folium.GeoJsonTooltip(
+            fields = ['name'],
+            labels=False
+        ),
+        show = False
+    ).add_to(m)
+    
+    # plop hiding zones
+    all_station = pd.concat([metro_stations,tram_stations])
+
+    station_meter = all_station.to_crs(epsg=28992)
+    station_buffers = station_meter.copy()
+    station_buffers.geometry = station_buffers.geometry.buffer(250)
+    station_buffers = station_buffers.to_crs(epsg=4326)
+
+    folium.GeoJson(
+        station_buffers,
+        name="Hiding Zones",
+        style_function=lambda feature: {
+            'fillColor': "#5F5F5F", 
+            'color': '#5F5F5F',
+            'weight': 0.5,              
+            'fillOpacity': 0.3     
+        },
+        show=False 
+    ).add_to(m)
+
+def radar(m):
+    #GPS function for radars
+    folium.plugins.LocateControl(
+        position="topleft",
+        drawCircle=True,
+        flyTo=True,
+        metric=True,
+    ).add_to(m)
+
+    with open(r"Jet-Lag-Stockholm\radar-panel.html", "r", encoding="utf-8") as f:
+        radar_panel_html = f.read()
+        
+    m.get_root().html.add_child(folium.Element(radar_panel_html))
+
 
 
 if __name__ == "__main__":

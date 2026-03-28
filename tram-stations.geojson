@@ -2851,30 +2851,6 @@
     {
       "type": "Feature",
       "properties": {
-        "@id": "node/10057050582",
-        "name": "Henriksdal",
-        "network": "SL",
-        "public_transport": "station",
-        "railway": "station",
-        "sl_stop_id": "9432",
-        "station": "train",
-        "train": "yes",
-        "wheelchair": "yes",
-        "wikidata": "Q10522071",
-        "wikipedia": "sv:Henriksdals station"
-      },
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          18.1084004,
-          59.3121307
-        ]
-      },
-      "id": "node/10057050582"
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "@id": "node/10057237733",
         "internet_access": "no",
         "light_rail": "yes",
