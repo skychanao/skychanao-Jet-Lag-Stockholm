@@ -1,6 +1,22 @@
-<div style="
+<button onclick="togglePanel()" id="radarToggle" style="
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10000;
+    padding: 10px 15px;
+    background-color: #3388ff;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    font-weight: bold;
+    cursor: pointer;
+"> Radar Menu</button>
+
+<div id="radarPanel" style="
+        display: None;
         position: absolute;
-        top: 10px;
+        bottom: 10px;
         right: 10px;
         z-index: 9999;
         background-color: white;
@@ -39,7 +55,7 @@
             font-weight: bold;
         ">Plot Radar</button>
         
-        <button onclick="clearRadars()" style="
+        <button onclick="undoRadars()" style="
             width: 100%;
             padding: 8px;
             margin-top: 5px;
@@ -48,7 +64,7 @@
             border: none;
             border-radius: 4px;
             font-size: 14px;
-        ">Clear Radars</button>
+        ">Undo Radar</button>
 
         <script>
             var activeRadars = [];
@@ -60,6 +76,20 @@
                     }
                 }
                 return null;
+            }
+
+            function togglePanel() {
+                var panel = document.getElementById('radarPanel');
+                var btn = document.getElementById('radarToggle');
+                if (panel.style.display === "none") {
+                    panel.style.display = "block";
+                    btn.innerHTML = "✖ Close";
+                    btn.style.backgroundColor = "#ff4444";
+                } else {
+                    panel.style.display = "none";
+                    btn.innerHTML = "📡 Radar Menu";
+                    btn.style.backgroundColor = "#3388ff";
+                }
             }
 
             function plotRadar() {
@@ -94,14 +124,11 @@
                 }
             }
 
-            function clearRadars() {
+            function undoRadars() {
                 var myMap = getFoliumMap();
                 if (!myMap) return;
-                
-                for (var i = 0; i < activeRadars.length; i++) {
-                    myMap.removeLayer(activeRadars[i]);
-                }
-                activeRadars = []; 
+                var lastRadar = activeRadars.pop();
+                myMap.removeLayer(lastRadar);
             }
         </script>
     </div>
